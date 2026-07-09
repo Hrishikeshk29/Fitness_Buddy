@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Fitness Buddy{% endblock %} – AI Fitness Coach</title>
+
+  <!-- Bootstrap 5 -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Bootstrap Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  {% block extra_css %}{% endblock %}
+</head>
+<body>
+
+<!-- ── Navbar ────────────────────────────────────────────────────── -->
+{% if current_user.is_authenticated %}
+<nav class="navbar navbar-expand-lg navbar-glass sticky-top">
+  <div class="container-fluid px-4">
+    <a class="navbar-brand fw-bold d-flex align-items-center gap-2" href="{{ url_for('main.dashboard') }}">
+      <span class="brand-icon">💪</span>
+      <span class="gradient-text">Fitness Buddy</span>
+    </a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navbarNav">
+      <ul class="navbar-nav me-auto ms-3 gap-1">
+        <li class="nav-item">
+          <a class="nav-link nav-pill {% if request.endpoint == 'main.dashboard' %}active{% endif %}"
+             href="{{ url_for('main.dashboard') }}">
+            <i class="bi bi-grid-1x2-fill me-1"></i>Dashboard
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link nav-pill {% if request.endpoint == 'chat.chat' %}active{% endif %}"
+             href="{{ url_for('chat.chat') }}">
+            <i class="bi bi-chat-dots-fill me-1"></i>AI Coach
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link nav-pill {% if request.endpoint == 'main.analytics' %}active{% endif %}"
+             href="{{ url_for('main.analytics') }}">
+            <i class="bi bi-bar-chart-fill me-1"></i>Analytics
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link nav-pill {% if request.endpoint == 'main.family' %}active{% endif %}"
+             href="{{ url_for('main.family') }}">
+            <i class="bi bi-people-fill me-1"></i>Family
+          </a>
+        </li>
+      </ul>
+      <div class="d-flex align-items-center gap-2">
+
+        <!-- ── Profile Selector ── -->
+        {% set _roster = [] %}
+        {% if current_user.is_authenticated %}
+          {% set _all = [current_user] + current_user.family_members %}
+          {% for _m in _all %}{% if _roster.append(_m) %}{% endif %}{% endfor %}
+        {% endif %}
+
+        {% if _roster | length > 1 %}
+        <div class="dropdown profile-selector-wrap">
+          <button class="btn btn-sm profile-selector-btn dropdown-toggle" data-bs-toggle="dropdown" title="Switch profile">
+            {% set _active_id = session.get('active_member_id', current_user.id) %}
+            {% set _active_name = current_user.name %}
+            {% for _m in _roster %}{% if _m.id == _active_id %}{% set _active_name = _m.name %}{% endif %}{% endfor %}
+            <i class="bi bi-person-fill me-1"></i>
+            <span class="ps-name">{{ _active_name.split()[0] }}</span>
+            {% if _active_id != current_user.id %}
+            <span class="managing-dot"></span>
+            {% endif %}
+          </button>
+          <ul class="dropdown-menu dropdown-menu-end glass-dropdown ps-dropdown">
+            <li><span class="dropdown-header small text-muted">Managing Profile</span></li>
+            {% for _m in _roster %}
+            <li>
+              <form method="POST" action="{{ url_for('main.switch_member') }}" class="d-inline">
+                <input type="hidden" name="member_id" value="{{ _m.id }}">
+                <input type="hidden" name="next" value="{{ request.path }}">
+                <button type="submit" class="dropdown-item ps-item {% if _m.id == _active_id %}ps-active{% endif %}">
+                  <div class="ps-avatar ps-{{ _m.profile_type or 'self' }}">{{ _m.name[0].upper() }}</div>
+                  <div>
+                    <div class="fw-semibold">{{ _m.name.split()[0] }}</div>
+                    <div class="text-muted" style="font-size:.7rem">{{ ((_m.profile_type or 'self') | title) }}{% if _m.id == current_user.id %} · You{% endif %}</div>
+                  </div>
+                  {% if _m.id == _active_id %}<i class="bi bi-check2 ms-auto text-primary"></i>{% endif %}
+                </button>
+              </form>
+            </li>
+            {% endfor %}
+            <li><hr class="dropdown-divider"></li>
+            <li>
+              <a class="dropdown-item small" href="{{ url_for('main.family') }}">
+                <i class="bi bi-people-fill me-2"></i>Manage Family
+              </a>
+            </li>
+          </ul>
+        </div>
+        {% endif %}
+
+        <!-- Dark mode toggle -->
+        <button class="btn btn-sm btn-outline-secondary theme-toggle" id="themeToggle" title="Toggle dark mode">
+          <i class="bi bi-moon-fill" id="themeIcon"></i>
+        </button>
+
+        <!-- User menu -->
+        <div class="dropdown">
+          <button class="btn btn-sm user-avatar-btn dropdown-toggle" data-bs-toggle="dropdown">
+            <div class="avatar-circle">{{ current_user.name[0].upper() }}</div>
+            <span class="ms-2 fw-semibold">{{ current_user.name.split()[0] }}</span>
+          </button>
+          <ul class="dropdown-menu dropdown-menu-end glass-dropdown">
+            <li><a class="dropdown-item" href="{{ url_for('main.edit_profile') }}">
+              <i class="bi bi-person-circle me-2"></i>Edit Profile</a></li>
+            <li><hr class="dropdown-divider"></li>
+            <li><a class="dropdown-item text-danger" href="{{ url_for('auth.logout') }}">
+              <i class="bi bi-box-arrow-right me-2"></i>Logout</a></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</nav>
+{% endif %}
+
+<!-- ── Flash Messages ─────────────────────────────────────────────── -->
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+  <div class="flash-container px-4 pt-2">
+    {% for category, message in messages %}
+    <div class="alert alert-{{ category }} alert-dismissible fade show glass-alert" role="alert">
+      {{ message }}
+      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+{% endwith %}
+
+<!-- ── Main Content ───────────────────────────────────────────────── -->
+<main class="main-content">
+  {% block content %}{% endblock %}
+</main>
+
+<!-- Bootstrap 5 JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<!-- Custom JS -->
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+{% block extra_js %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,171 @@
+{% extends "base.html" %}
+{% block title %}Edit – {{ member.name }}{% endblock %}
+{% block content %}
+<div class="setup-container">
+  <div class="setup-card">
+    <div class="mb-4 d-flex align-items-center gap-3">
+      <a href="{{ url_for('main.family') }}" class="btn btn-sm btn-outline-secondary">
+        <i class="bi bi-arrow-left"></i>
+      </a>
+      <div class="d-flex align-items-center gap-3 flex-wrap">
+        <div class="fpc-avatar fpc-{{ member.profile_type or 'self' }}" style="width:44px;height:44px;font-size:1.2rem;flex-shrink:0">
+          {{ member.name[0].upper() }}
+        </div>
+        <div>
+          <h4 class="fw-bold mb-0">Edit – {{ member.name }}</h4>
+          <p class="text-muted small mb-0">{{ (member.profile_type or 'family') | title }} profile</p>
+        </div>
+      </div>
+    </div>
+
+    <form method="POST" action="{{ url_for('main.edit_family_member', member_id=member.id) }}">
+      <div class="row g-3">
+
+        <!-- Basic Info -->
+        <div class="col-12"><h6 class="section-title">👤 Basic Information</h6></div>
+
+        <div class="col-md-6">
+          <label class="form-label fw-semibold">Full Name</label>
+          <input type="text" name="name" class="form-control" value="{{ member.name }}" required>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label fw-semibold">Relationship</label>
+          <select name="profile_type" class="form-select">
+            {% for val, label in [('spouse','Spouse / Partner'),('parent','Parent'),('child','Child'),('sibling','Sibling'),('other','Other')] %}
+            <option value="{{ val }}" {{ 'selected' if member.profile_type == val }}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label fw-semibold">Age</label>
+          <input type="number" name="age" class="form-control" value="{{ member.age or '' }}" min="1" max="120">
+        </div>
+        <div class="col-md-6">
+          <label class="form-label fw-semibold">Gender</label>
+          <select name="gender" class="form-select">
+            <option value="male"   {{ 'selected' if member.gender == 'male' }}>Male</option>
+            <option value="female" {{ 'selected' if member.gender == 'female' }}>Female</option>
+            <option value="other"  {{ 'selected' if member.gender == 'other' }}>Other</option>
+          </select>
+        </div>
+
+        <!-- Body Metrics -->
+        <div class="col-12 mt-2"><h6 class="section-title">📏 Body Metrics</h6></div>
+
+        <div class="col-md-4">
+          <label class="form-label fw-semibold">Height (cm)</label>
+          <input type="number" name="height" class="form-control" step="0.1" min="50" max="250"
+                 value="{{ member.height or '' }}" placeholder="e.g. 165" id="fmHeight">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label fw-semibold">Current Weight (kg)</label>
+          <input type="number" name="weight" class="form-control" step="0.1" min="5" max="300"
+                 value="{{ member.weight or '' }}" placeholder="e.g. 62" id="fmWeight">
+          {% if member.weight %}<small class="text-muted">Current: {{ member.weight }} kg</small>{% endif %}
+        </div>
+        <div class="col-md-4">
+          <label class="form-label fw-semibold">Target Weight (kg)</label>
+          <input type="number" name="target_weight" class="form-control" step="0.1" min="5" max="300"
+                 value="{{ member.target_weight or '' }}" placeholder="e.g. 58">
+        </div>
+
+        <!-- Live BMI Preview -->
+        <div class="col-12">
+          <div class="bmi-preview {{ '' if (member.height and member.weight) else 'd-none' }}" id="bmiPreview">
+            <span class="bmi-preview-label">Current BMI:</span>
+            <span class="bmi-preview-value" id="bmiValue">{{ member.bmi or '—' }}</span>
+            <span class="bmi-preview-cat
+              {% if member.bmi %}
+                {% if member.bmi < 18.5 %}text-info
+                {% elif member.bmi < 25 %}text-success
+                {% elif member.bmi < 30 %}text-warning
+                {% else %}text-danger{% endif %}
+              {% endif %}"
+              id="bmiCat">
+              {% if member.bmi %}· {{ member.bmi_category }}{% endif %}
+            </span>
+          </div>
+        </div>
+
+        <!-- Fitness Profile -->
+        <div class="col-12 mt-2"><h6 class="section-title">🎯 Fitness Profile</h6></div>
+
+        <div class="col-md-6">
+          <label class="form-label fw-semibold">Fitness Goal</label>
+          <select name="fitness_goal" class="form-select">
+            {% for val, label in [
+              ('general_fitness','⚡ General Fitness'),
+              ('weight_loss','🔥 Weight Loss'),
+              ('muscle_gain','💪 Muscle Gain'),
+              ('endurance_improvement','🏃 Endurance Improvement'),
+              ('fat_reduction','📉 Fat Reduction'),
+              ('strength_building','🏋️ Strength Building')
+            ] %}
+            <option value="{{ val }}" {{ 'selected' if member.fitness_goal == val }}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label fw-semibold">Fitness Level</label>
+          <select name="fitness_level" class="form-select">
+            <option value="beginner"     {{ 'selected' if member.fitness_level == 'beginner' }}>🌱 Beginner</option>
+            <option value="intermediate" {{ 'selected' if member.fitness_level == 'intermediate' }}>🌿 Intermediate</option>
+            <option value="advanced"     {{ 'selected' if member.fitness_level == 'advanced' }}>🌳 Advanced</option>
+          </select>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label fw-semibold">Dietary Preference</label>
+          <select name="dietary_preference" class="form-select">
+            <option value="vegetarian"    {{ 'selected' if member.dietary_preference == 'vegetarian' }}>🥗 Vegetarian</option>
+            <option value="non_vegetarian"{{ 'selected' if member.dietary_preference == 'non_vegetarian' }}>🍗 Non-Vegetarian</option>
+            <option value="vegan"         {{ 'selected' if member.dietary_preference == 'vegan' }}>🌱 Vegan</option>
+          </select>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label fw-semibold">Available Workout Time (min/day)</label>
+          <select name="available_workout_time" class="form-select">
+            {% for m in [10,20,30,45,60] %}
+            <option value="{{ m }}" {{ 'selected' if member.available_workout_time == m }}>{{ m }} minutes</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="col-12 mt-3 d-flex gap-2 flex-wrap">
+          <button type="submit" class="btn btn-primary btn-lg fw-bold px-5">
+            <i class="bi bi-save-fill me-2"></i>Save Changes
+          </button>
+          <a href="{{ url_for('main.family') }}" class="btn btn-outline-secondary btn-lg">
+            Cancel
+          </a>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function calcBMI() {
+  const h = parseFloat(document.getElementById('fmHeight').value);
+  const w = parseFloat(document.getElementById('fmWeight').value);
+  const preview = document.getElementById('bmiPreview');
+  if (h > 0 && w > 0) {
+    const bmi = (w / ((h / 100) ** 2)).toFixed(1);
+    let cat = '', cls = '';
+    if (bmi < 18.5)      { cat = 'Underweight'; cls = 'text-info'; }
+    else if (bmi < 25)   { cat = 'Normal weight'; cls = 'text-success'; }
+    else if (bmi < 30)   { cat = 'Overweight'; cls = 'text-warning'; }
+    else                  { cat = 'Obese'; cls = 'text-danger'; }
+    document.getElementById('bmiValue').textContent = bmi;
+    document.getElementById('bmiCat').textContent = '· ' + cat;
+    document.getElementById('bmiCat').className = 'bmi-preview-cat ' + cls;
+    preview.classList.remove('d-none');
+  } else {
+    preview.classList.add('d-none');
+  }
+}
+document.getElementById('fmHeight').addEventListener('input', calcBMI);
+document.getElementById('fmWeight').addEventListener('input', calcBMI);
+</script>
+{% endblock %}

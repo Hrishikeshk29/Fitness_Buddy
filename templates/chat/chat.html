@@ -1,0 +1,173 @@
+{% extends "base.html" %}
+{% block title %}AI Coach – Chat{% endblock %}
+
+{% block content %}
+<div class="chat-layout">
+
+  <!-- ── Sidebar ── -->
+  <aside class="chat-sidebar">
+    <div class="chat-sidebar-header">
+      <h6 class="fw-bold mb-0"><i class="bi bi-robot me-2"></i>AI Coach</h6>
+    </div>
+
+    <!-- Quick Prompts -->
+    <div class="p-3">
+      <p class="text-muted small mb-2 fw-semibold text-uppercase" style="font-size:0.7rem;">Quick Prompts</p>
+      {% set prompts = [
+        ("bi-dumbbell","Create my workout plan"),
+        ("bi-egg-fried","Suggest healthy meals"),
+        ("bi-graph-up","Analyse my progress"),
+        ("bi-lightning-fill","Motivate me today"),
+        ("bi-check2-circle","Improve my routine"),
+        ("bi-heart-pulse","Check my BMI"),
+        ("bi-droplet","Hydration tips"),
+        ("bi-moon-stars","Better sleep tips"),
+      ] %}
+      {% for icon, prompt in prompts %}
+      <button class="prompt-chip" onclick="sendSuggestion('{{ prompt }}')">
+        <i class="bi {{ icon }} me-2"></i>{{ prompt }}
+      </button>
+      {% endfor %}
+    </div>
+
+    <hr class="my-0">
+
+    <!-- Agent Status -->
+    <div class="p-3">
+      <p class="text-muted small mb-2 fw-semibold text-uppercase" style="font-size:0.7rem;">Agent Status</p>
+      {% set agents = [
+        ("Orchestrator","primary"),
+        ("Profile","success"),
+        ("Workout","warning"),
+        ("Nutrition","info"),
+        ("Motivation","danger"),
+        ("Habit","secondary"),
+        ("Progress","dark"),
+      ] %}
+      {% for agent, color in agents %}
+      <div class="agent-status-row">
+        <span class="agent-dot bg-{{ color }}"></span>
+        <span class="small">{{ agent }} Agent</span>
+      </div>
+      {% endfor %}
+    </div>
+
+    <hr class="my-0">
+
+    <div class="p-3">
+      <button class="btn btn-sm btn-outline-danger w-100" id="clearChatBtn">
+        <i class="bi bi-trash me-1"></i>Clear History
+      </button>
+    </div>
+  </aside>
+
+  <!-- ── Chat Area ── -->
+  <div class="chat-main">
+
+    <!-- Chat Header -->
+    <div class="chat-header">
+      <div class="d-flex align-items-center gap-3">
+        <div class="chat-avatar">🤖</div>
+        <div>
+          <div class="fw-bold">Fitness Buddy AI Coach</div>
+          <div class="small text-muted d-flex align-items-center gap-1">
+            <span class="online-dot"></span>Powered by IBM Granite
+          </div>
+        </div>
+      </div>
+      <div class="d-flex gap-2">
+        <button class="btn btn-sm btn-outline-secondary" id="weeklyReportBtn" title="Generate weekly report">
+          <i class="bi bi-file-earmark-text me-1"></i>Weekly Report
+        </button>
+      </div>
+    </div>
+
+    <!-- Messages -->
+    <div class="chat-messages" id="chatMessages">
+
+      {% if not history %}
+      <!-- Welcome message -->
+      <div class="message assistant-message">
+        <div class="message-avatar">🤖</div>
+        <div class="message-bubble">
+          <p class="mb-2">Hi <strong>{{ current_user.name.split()[0] }}</strong>! 👋 I'm your AI Fitness Buddy powered by IBM Granite.</p>
+          <p class="mb-2">I have <strong>7 specialised agents</strong> ready to help you:</p>
+          <ul class="mb-2 ps-3 small">
+            <li>💪 <strong>Workout Planning</strong> – personalised daily & weekly plans</li>
+            <li>🥗 <strong>Nutrition</strong> – Indian meal suggestions with calories</li>
+            <li>🔥 <strong>Motivation</strong> – daily inspiration and accountability</li>
+            <li>💧 <strong>Habit Tracking</strong> – water, sleep, streak coaching</li>
+            <li>📈 <strong>Progress Analysis</strong> – adaptive plan adjustments</li>
+          </ul>
+          <p class="mb-0 small text-muted">What would you like help with today?</p>
+        </div>
+        <div class="message-time">Just now</div>
+      </div>
+      {% endif %}
+
+      {% for msg in history %}
+      <div class="message {{ 'user-message' if msg.role == 'user' else 'assistant-message' }}">
+        {% if msg.role == 'assistant' %}
+        <div class="message-avatar">🤖</div>
+        {% endif %}
+        <div class="message-bubble {{ 'user-bubble' if msg.role == 'user' else '' }}">
+          {{ msg.content | replace('\n', '<br>') | safe }}
+          {% if msg.agent_used and msg.role == 'assistant' %}
+          <div class="agent-tag mt-2">
+            <i class="bi bi-cpu me-1"></i>{{ msg.agent_used }}
+          </div>
+          {% endif %}
+        </div>
+        {% if msg.role == 'user' %}
+        <div class="message-avatar user-avatar-msg">{{ current_user.name[0].upper() }}</div>
+        {% endif %}
+        <div class="message-time">{{ msg.created_at.strftime('%H:%M') }}</div>
+      </div>
+      {% endfor %}
+
+      <!-- Typing indicator (hidden by default) -->
+      <div class="message assistant-message d-none" id="typingIndicator">
+        <div class="message-avatar">🤖</div>
+        <div class="message-bubble typing-bubble">
+          <div class="typing-dots">
+            <span></span><span></span><span></span>
+          </div>
+          <span class="typing-label">AI agents working…</span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Input Area -->
+    <div class="chat-input-area">
+      <!-- Active agents indicator -->
+      <div class="active-agents-row d-none" id="activeAgentsRow">
+        <span class="small text-muted me-2">Agents used:</span>
+        <div id="activeAgentBadges"></div>
+      </div>
+      <div class="chat-input-wrapper">
+        <textarea
+          id="chatInput"
+          class="chat-textarea"
+          placeholder="Ask your AI fitness coach anything… (e.g. Create a 30-min home workout for weight loss)"
+          rows="1"
+        ></textarea>
+        <button class="send-btn" id="sendBtn" title="Send">
+          <i class="bi bi-send-fill"></i>
+        </button>
+      </div>
+      <p class="disclaimer-text">
+        <i class="bi bi-shield-check me-1"></i>
+        Fitness Buddy provides general guidance only. Consult a healthcare professional for medical advice.
+      </p>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  const CURRENT_USER_INITIAL = "{{ current_user.name[0].upper() }}";
+</script>
+<script src="{{ url_for('static', filename='js/chat.js') }}"></script>
+{% endblock %}

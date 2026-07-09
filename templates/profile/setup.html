@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+{% block title %}Complete Your Profile{% endblock %}
+
+{% block content %}
+<div class="setup-container">
+  <div class="setup-card">
+    <div class="setup-header text-center mb-4">
+      <div class="setup-icon">💪</div>
+      <h3 class="fw-bold">Set Up Your Fitness Profile</h3>
+      <p class="text-muted">Tell us about yourself so our AI can personalise your fitness journey</p>
+    </div>
+
+    <form method="POST" action="{{ url_for('main.setup_profile') }}" class="needs-validation" novalidate>
+      <div class="row g-3">
+
+        <!-- Basic Info -->
+        <div class="col-12"><h6 class="section-title">📋 Basic Information</h6></div>
+
+        <div class="col-md-6">
+          <label class="form-label fw-semibold">Age <span class="text-danger">*</span></label>
+          <input type="number" name="age" class="form-control" min="10" max="100" required
+                 value="{{ current_user.age or '' }}" placeholder="Your age">
+        </div>
+        <div class="col-md-6">
+          <label class="form-label fw-semibold">Gender <span class="text-danger">*</span></label>
+          <select name="gender" class="form-select" required>
+            <option value="">Select gender</option>
+            <option value="male" {{ 'selected' if current_user.gender == 'male' }}>Male</option>
+            <option value="female" {{ 'selected' if current_user.gender == 'female' }}>Female</option>
+            <option value="other" {{ 'selected' if current_user.gender == 'other' }}>Other</option>
+          </select>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label fw-semibold">Height (cm) <span class="text-danger">*</span></label>
+          <input type="number" name="height" class="form-control" step="0.1" min="100" max="250" required
+                 value="{{ current_user.height or '' }}" placeholder="e.g. 170">
+        </div>
+        <div class="col-md-6">
+          <label class="form-label fw-semibold">Current Weight (kg) <span class="text-danger">*</span></label>
+          <input type="number" name="weight" class="form-control" step="0.1" min="20" max="300" required
+                 value="{{ current_user.weight or '' }}" placeholder="e.g. 70">
+        </div>
+        <div class="col-md-6">
+          <label class="form-label fw-semibold">Target Weight (kg)</label>
+          <input type="number" name="target_weight" class="form-control" step="0.1" min="20" max="300"
+                 value="{{ current_user.target_weight or '' }}" placeholder="e.g. 65">
+        </div>
+
+        <!-- Fitness Goals -->
+        <div class="col-12 mt-2"><h6 class="section-title">🎯 Fitness Goals</h6></div>
+
+        <div class="col-md-6">
+          <label class="form-label fw-semibold">Primary Goal <span class="text-danger">*</span></label>
+          <select name="fitness_goal" class="form-select" required>
+            <option value="">Select your goal</option>
+            <option value="weight_loss" {{ 'selected' if current_user.fitness_goal == 'weight_loss' }}>🔥 Weight Loss</option>
+            <option value="muscle_gain" {{ 'selected' if current_user.fitness_goal == 'muscle_gain' }}>💪 Muscle Gain</option>
+            <option value="general_fitness" {{ 'selected' if current_user.fitness_goal == 'general_fitness' }}>⚡ General Fitness</option>
+            <option value="endurance_improvement" {{ 'selected' if current_user.fitness_goal == 'endurance_improvement' }}>🏃 Endurance Improvement</option>
+            <option value="fat_reduction" {{ 'selected' if current_user.fitness_goal == 'fat_reduction' }}>📉 Fat Reduction</option>
+            <option value="strength_building" {{ 'selected' if current_user.fitness_goal == 'strength_building' }}>🏋️ Strength Building</option>
+          </select>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label fw-semibold">Current Fitness Level <span class="text-danger">*</span></label>
+          <select name="fitness_level" class="form-select" required>
+            <option value="">Select level</option>
+            <option value="beginner" {{ 'selected' if current_user.fitness_level == 'beginner' }}>🌱 Beginner</option>
+            <option value="intermediate" {{ 'selected' if current_user.fitness_level == 'intermediate' }}>🌿 Intermediate</option>
+            <option value="advanced" {{ 'selected' if current_user.fitness_level == 'advanced' }}>🌳 Advanced</option>
+          </select>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label fw-semibold">Dietary Preference</label>
+          <select name="dietary_preference" class="form-select">
+            <option value="vegetarian" {{ 'selected' if current_user.dietary_preference == 'vegetarian' }}>🥗 Vegetarian</option>
+            <option value="non_vegetarian" {{ 'selected' if current_user.dietary_preference == 'non_vegetarian' }}>🍗 Non-Vegetarian</option>
+            <option value="vegan" {{ 'selected' if current_user.dietary_preference == 'vegan' }}>🌱 Vegan</option>
+          </select>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label fw-semibold">Daily Activity Level</label>
+          <select name="daily_activity_level" class="form-select">
+            <option value="sedentary">💺 Sedentary (desk job)</option>
+            <option value="lightly_active">🚶 Lightly Active</option>
+            <option value="moderately_active" selected>🏃 Moderately Active</option>
+            <option value="very_active">⚡ Very Active</option>
+          </select>
+        </div>
+
+        <!-- Workout Preferences -->
+        <div class="col-12 mt-2"><h6 class="section-title">⏱️ Workout Preferences</h6></div>
+
+        <div class="col-12">
+          <label class="form-label fw-semibold">Available Workout Time per Day</label>
+          <div class="d-flex gap-2 flex-wrap">
+            {% for mins, label in [(10,'10 min'),(20,'20 min'),(30,'30 min'),(45,'45 min'),(60,'60 min')] %}
+            <div class="form-check form-check-inline">
+              <input class="form-check-input" type="radio" name="available_workout_time"
+                     id="time{{ mins }}" value="{{ mins }}"
+                     {{ 'checked' if (current_user.available_workout_time or 30) == mins }}>
+              <label class="form-check-label time-pill" for="time{{ mins }}">{{ label }}</label>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+
+        <div class="col-12 mt-3">
+          <button type="submit" class="btn btn-primary btn-lg w-100 fw-bold">
+            <i class="bi bi-rocket-takeoff-fill me-2"></i>Start My Fitness Journey
+          </button>
+        </div>
+
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

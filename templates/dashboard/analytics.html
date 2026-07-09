@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+{% block title %}Analytics{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4 py-4">
+  <div class="d-flex align-items-center justify-content-between mb-4">
+    <div>
+      <h4 class="fw-bold mb-0"><i class="bi bi-bar-chart-fill me-2 text-primary"></i>Fitness Analytics</h4>
+      <p class="text-muted small mb-0">Last 30 days overview</p>
+    </div>
+    <a href="{{ url_for('main.dashboard') }}" class="btn btn-sm btn-outline-secondary">
+      <i class="bi bi-arrow-left me-1"></i>Dashboard
+    </a>
+  </div>
+
+  <!-- Summary Stats -->
+  <div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+      <div class="stat-card stat-card-blue">
+        <div class="stat-card-icon"><i class="bi bi-lightning-fill"></i></div>
+        <div class="stat-card-value">{{ total_workouts }}</div>
+        <div class="stat-card-label">Workouts Done</div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="stat-card stat-card-orange">
+        <div class="stat-card-icon"><i class="bi bi-clock-fill"></i></div>
+        <div class="stat-card-value">{{ total_duration }}</div>
+        <div class="stat-card-label">Total Minutes</div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="stat-card stat-card-green">
+        <div class="stat-card-icon"><i class="bi bi-droplet-fill"></i></div>
+        <div class="stat-card-value">{{ avg_water }}</div>
+        <div class="stat-card-label">Avg Daily Water (L)</div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="stat-card stat-card-purple">
+        <div class="stat-card-icon"><i class="bi bi-moon-stars-fill"></i></div>
+        <div class="stat-card-value">{{ avg_sleep }}</div>
+        <div class="stat-card-label">Avg Sleep (hrs)</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-4">
+    <!-- Weight Progress Chart -->
+    <div class="col-lg-6">
+      <div class="glass-card h-100">
+        <div class="glass-card-header">
+          <h6 class="mb-0 fw-bold"><i class="bi bi-graph-down-arrow me-2 text-primary"></i>Weight Progress</h6>
+        </div>
+        <div class="glass-card-body">
+          {% if progress_records %}
+          <canvas id="weightProgressChart" height="160"></canvas>
+          {% else %}
+          <div class="empty-state"><p class="text-muted">No progress data yet.</p></div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Workout Frequency -->
+    <div class="col-lg-6">
+      <div class="glass-card h-100">
+        <div class="glass-card-header">
+          <h6 class="mb-0 fw-bold"><i class="bi bi-bar-chart-fill me-2 text-success"></i>Daily Workout Activity</h6>
+        </div>
+        <div class="glass-card-body">
+          {% if workout_logs %}
+          <canvas id="workoutActivityChart" height="160"></canvas>
+          {% else %}
+          <div class="empty-state"><p class="text-muted">No workout logs yet.</p></div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Water & Sleep -->
+    <div class="col-lg-6">
+      <div class="glass-card h-100">
+        <div class="glass-card-header">
+          <h6 class="mb-0 fw-bold"><i class="bi bi-droplet me-2 text-info"></i>Water & Sleep Trends</h6>
+        </div>
+        <div class="glass-card-body">
+          {% if habit_logs %}
+          <canvas id="habitTrendChart" height="160"></canvas>
+          {% else %}
+          <div class="empty-state"><p class="text-muted">No habit data yet.</p></div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- BMI Gauge -->
+    <div class="col-lg-6">
+      <div class="glass-card h-100">
+        <div class="glass-card-header">
+          <h6 class="mb-0 fw-bold"><i class="bi bi-activity me-2 text-warning"></i>BMI Status</h6>
+        </div>
+        <div class="glass-card-body text-center">
+          <div class="bmi-display mt-3">
+            <div class="bmi-number">{{ user.bmi or '—' }}</div>
+            <div class="bmi-category-badge bmi-{{ user.bmi_category.lower().replace(' ', '-') }}">
+              {{ user.bmi_category }}
+            </div>
+          </div>
+          <div class="bmi-scale mt-3">
+            <div class="bmi-bar">
+              <div class="bmi-ranges">
+                <span class="bmi-range underweight">Underweight<br>&lt;18.5</span>
+                <span class="bmi-range normal">Normal<br>18.5–25</span>
+                <span class="bmi-range overweight">Overweight<br>25–30</span>
+                <span class="bmi-range obese">Obese<br>&gt;30</span>
+              </div>
+              {% if user.bmi %}
+                  {% set bmi_pct = ((user.bmi - 15) / 25 * 100) %}
+                  {% set bmi_pct = [bmi_pct, 95] | min %}
+                  {% set bmi_pct = [bmi_pct, 2] | max %}
+                  <div class="bmi-indicator" style="left: {{ bmi_pct | round | int }}%"></div>
+              {% endif %}
+            </div>
+          </div>
+          {% if user.weight and user.target_weight %}
+          <div class="mt-3">
+            <div class="d-flex justify-content-between small text-muted mb-1">
+              <span>Current: {{ user.weight }} kg</span>
+              <span>Target: {{ user.target_weight }} kg</span>
+            </div>
+            {% set progress_pct = (1 - ((user.weight - user.target_weight) | abs) / (user.weight)) * 100 %}
+                {% set progress_pct = [progress_pct, 100] | min %}
+                {% set progress_pct = [progress_pct, 0] | max %}
+            <div class="progress" style="height:12px;border-radius:6px">
+              <div class="progress-bar bg-gradient-primary" style="width:{{ progress_pct | round | int }}%"></div>
+            </div>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  const progressRecords = {{ progress_records_json | tojson }};
+  const workoutLogs = {{ workout_logs_json | tojson }};
+  const habitLogs = {{ habit_logs_json | tojson }};
+</script>
+<script src="{{ url_for('static', filename='js/analytics.js') }}"></script>
+{% endblock %}

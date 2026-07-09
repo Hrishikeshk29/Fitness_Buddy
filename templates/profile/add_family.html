@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+{% block title %}Add Family Member{% endblock %}
+{% block content %}
+<div class="setup-container">
+  <div class="setup-card">
+    <div class="mb-4 d-flex align-items-center gap-3">
+      <a href="{{ url_for('main.family') }}" class="btn btn-sm btn-outline-secondary">
+        <i class="bi bi-arrow-left"></i>
+      </a>
+      <div>
+        <h4 class="fw-bold mb-0">Add Family Member</h4>
+        <p class="text-muted small mb-0">Set up a complete fitness profile for your family</p>
+      </div>
+    </div>
+
+    <form method="POST" action="{{ url_for('main.add_family_member') }}">
+      <div class="row g-3">
+
+        <!-- Basic Info -->
+        <div class="col-12"><h6 class="section-title">👤 Basic Information</h6></div>
+
+        <div class="col-md-6">
+          <label class="form-label fw-semibold">Full Name <span class="text-danger">*</span></label>
+          <input type="text" name="name" class="form-control" required placeholder="e.g. Priya Sharma">
+        </div>
+        <div class="col-md-6">
+          <label class="form-label fw-semibold">Relationship <span class="text-danger">*</span></label>
+          <select name="profile_type" class="form-select" required>
+            <option value="spouse">Spouse / Partner</option>
+            <option value="parent">Parent</option>
+            <option value="child">Child</option>
+            <option value="sibling">Sibling</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label fw-semibold">Age</label>
+          <input type="number" name="age" class="form-control" min="1" max="120" placeholder="Age">
+        </div>
+        <div class="col-md-6">
+          <label class="form-label fw-semibold">Gender</label>
+          <select name="gender" class="form-select">
+            <option value="male">Male</option>
+            <option value="female">Female</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+
+        <!-- Body Metrics -->
+        <div class="col-12 mt-2"><h6 class="section-title">📏 Body Metrics (for BMI)</h6></div>
+
+        <div class="col-md-4">
+          <label class="form-label fw-semibold">Height (cm)</label>
+          <input type="number" name="height" class="form-control" step="0.1" min="50" max="250"
+                 placeholder="e.g. 165" id="fmHeight">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label fw-semibold">Current Weight (kg)</label>
+          <input type="number" name="weight" class="form-control" step="0.1" min="5" max="300"
+                 placeholder="e.g. 62" id="fmWeight">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label fw-semibold">Target Weight (kg)</label>
+          <input type="number" name="target_weight" class="form-control" step="0.1" min="5" max="300"
+                 placeholder="e.g. 58">
+        </div>
+
+        <!-- Live BMI Preview -->
+        <div class="col-12">
+          <div class="bmi-preview d-none" id="bmiPreview">
+            <span class="bmi-preview-label">Estimated BMI:</span>
+            <span class="bmi-preview-value" id="bmiValue">—</span>
+            <span class="bmi-preview-cat" id="bmiCat"></span>
+          </div>
+        </div>
+
+        <!-- Fitness Profile -->
+        <div class="col-12 mt-2"><h6 class="section-title">🎯 Fitness Profile</h6></div>
+
+        <div class="col-md-6">
+          <label class="form-label fw-semibold">Fitness Goal</label>
+          <select name="fitness_goal" class="form-select">
+            <option value="general_fitness">⚡ General Fitness</option>
+            <option value="weight_loss">🔥 Weight Loss</option>
+            <option value="muscle_gain">💪 Muscle Gain</option>
+            <option value="endurance_improvement">🏃 Endurance Improvement</option>
+            <option value="fat_reduction">📉 Fat Reduction</option>
+            <option value="strength_building">🏋️ Strength Building</option>
+          </select>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label fw-semibold">Fitness Level</label>
+          <select name="fitness_level" class="form-select">
+            <option value="beginner">🌱 Beginner</option>
+            <option value="intermediate">🌿 Intermediate</option>
+            <option value="advanced">🌳 Advanced</option>
+          </select>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label fw-semibold">Dietary Preference</label>
+          <select name="dietary_preference" class="form-select">
+            <option value="vegetarian">🥗 Vegetarian</option>
+            <option value="non_vegetarian">🍗 Non-Vegetarian</option>
+            <option value="vegan">🌱 Vegan</option>
+          </select>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label fw-semibold">Available Workout Time (min/day)</label>
+          <select name="available_workout_time" class="form-select">
+            <option value="10">10 minutes</option>
+            <option value="20">20 minutes</option>
+            <option value="30" selected>30 minutes</option>
+            <option value="45">45 minutes</option>
+            <option value="60">60 minutes</option>
+          </select>
+        </div>
+
+        <div class="col-12 mt-3">
+          <button type="submit" class="btn btn-primary btn-lg fw-bold px-5">
+            <i class="bi bi-person-plus-fill me-2"></i>Add Family Member
+          </button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Live BMI calculator
+function calcBMI() {
+  const h = parseFloat(document.getElementById('fmHeight').value);
+  const w = parseFloat(document.getElementById('fmWeight').value);
+  const preview = document.getElementById('bmiPreview');
+  if (h > 0 && w > 0) {
+    const bmi = (w / ((h / 100) ** 2)).toFixed(1);
+    let cat = '', cls = '';
+    if (bmi < 18.5)      { cat = 'Underweight'; cls = 'text-info'; }
+    else if (bmi < 25)   { cat = 'Normal weight'; cls = 'text-success'; }
+    else if (bmi < 30)   { cat = 'Overweight'; cls = 'text-warning'; }
+    else                  { cat = 'Obese'; cls = 'text-danger'; }
+    document.getElementById('bmiValue').textContent = bmi;
+    document.getElementById('bmiCat').textContent = '· ' + cat;
+    document.getElementById('bmiCat').className = 'bmi-preview-cat ' + cls;
+    preview.classList.remove('d-none');
+  } else {
+    preview.classList.add('d-none');
+  }
+}
+document.getElementById('fmHeight').addEventListener('input', calcBMI);
+document.getElementById('fmWeight').addEventListener('input', calcBMI);
+</script>
+{% endblock %}

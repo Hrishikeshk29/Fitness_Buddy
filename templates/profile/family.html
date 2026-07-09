@@ -1,0 +1,454 @@
+{% extends "base.html" %}
+{% block title %}Family Fitness{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4 py-4">
+
+  <!-- ── Page Header ── -->
+  <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-3">
+    <div>
+      <h4 class="fw-bold mb-0"><i class="bi bi-people-fill me-2 text-primary"></i>Family Fitness Hub</h4>
+      <p class="text-muted small mb-0">Track and compare your family's health journey together</p>
+    </div>
+    <a href="{{ url_for('main.add_family_member') }}" class="btn btn-primary fw-semibold">
+      <i class="bi bi-person-plus-fill me-2"></i>Add Member
+    </a>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <!-- SECTION 1 — FAMILY PROFILES                               -->
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <div class="section-label mb-3">
+    <span class="section-pill"><i class="bi bi-people me-2"></i>Family Profiles</span>
+  </div>
+
+  <div class="row g-3 mb-4">
+    {% for m in family_data %}
+    <div class="col-sm-6 col-lg-3">
+      <div class="family-profile-card h-100">
+        <div class="fpc-top">
+          <div class="fpc-avatar fpc-{{ m.profile_type }}">{{ m.name[0].upper() }}</div>
+          <div class="fpc-badge">{{ m.profile_type.title() }}</div>
+          {% if m.is_self %}<span class="you-badge">You</span>{% endif %}
+        </div>
+        <div class="fpc-body">
+          <h6 class="fw-bold mb-1">{{ m.name }}</h6>
+          <p class="text-muted small mb-2">{{ (m.fitness_goal or 'general_fitness') | replace('_',' ') | title }}</p>
+          <div class="fpc-stats">
+            <span title="BMI"><i class="bi bi-activity text-primary"></i> {{ m.bmi or '—' }}</span>
+            <span title="Streak"><i class="bi bi-fire text-warning"></i> {{ m.streak }}d</span>
+            <span title="Fitness Score"><i class="bi bi-star-fill text-success"></i> {{ m.fitness_score | int }}</span>
+          </div>
+          <div class="mt-2">
+            <div class="d-flex justify-content-between small mb-1">
+              <span class="text-muted">Goal Progress</span>
+              <span class="fw-bold">{{ m.goal_progress_pct | int }}%</span>
+            </div>
+            <div class="progress fpc-progress">
+              <div class="progress-bar {% if m.goal_progress_pct >= 75 %}bg-success{% elif m.goal_progress_pct >= 40 %}bg-primary{% else %}bg-warning{% endif %}"
+                   style="width:{{ m.goal_progress_pct }}%"></div>
+            </div>
+          </div>
+          <!-- Quick Actions for this member -->
+          <div class="fpc-actions mt-3">
+            <a href="{{ url_for('main.member_dashboard', member_id=m.id) }}"
+               class="btn btn-sm btn-primary w-100 mb-1">
+              <i class="bi bi-grid-1x2-fill me-1"></i>View Dashboard
+            </a>
+            {% if not m.is_self %}
+            <a href="{{ url_for('main.edit_family_member', member_id=m.id) }}"
+               class="btn btn-sm btn-outline-secondary w-100 mb-1">
+              <i class="bi bi-pencil-fill me-1"></i>Edit Profile
+            </a>
+            {% endif %}
+            <div class="d-flex gap-1">
+              <button class="btn btn-xs btn-outline-success flex-fill"
+                      data-bs-toggle="modal"
+                      data-bs-target="#quickWorkoutModal{{ m.id }}">
+                <i class="bi bi-lightning-fill"></i> Workout
+              </button>
+              <button class="btn btn-xs btn-outline-info flex-fill"
+                      data-bs-toggle="modal"
+                      data-bs-target="#quickHabitModal{{ m.id }}">
+                <i class="bi bi-droplet-fill"></i> Habits
+              </button>
+              <button class="btn btn-xs btn-outline-warning flex-fill"
+                      data-bs-toggle="modal"
+                      data-bs-target="#quickProgressModal{{ m.id }}">
+                <i class="bi bi-graph-up"></i> Weight
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Workout Modal -->
+    <div class="modal fade" id="quickWorkoutModal{{ m.id }}" tabindex="-1">
+      <div class="modal-dialog modal-sm">
+        <div class="modal-content glass-modal">
+          <div class="modal-header border-0 pb-0">
+            <h6 class="modal-title fw-bold">💪 Log Workout – {{ m.name }}</h6>
+            <button type="button" class="btn-close btn-close-sm" data-bs-dismiss="modal"></button>
+          </div>
+          <form method="POST" action="{{ url_for('main.member_log_workout', member_id=m.id) }}">
+            <div class="modal-body pt-2">
+              <div class="mb-2">
+                <select name="workout_type" class="form-select form-select-sm">
+                  <option>Cardio</option><option>Strength Training</option><option>HIIT</option>
+                  <option>Yoga</option><option>Walking</option><option>Home Workout</option>
+                </select>
+              </div>
+              <div class="mb-2">
+                <input type="number" name="duration" class="form-control form-control-sm"
+                       placeholder="Duration (min)" value="30" min="5" max="300">
+              </div>
+              <input type="number" name="calories_burned" class="form-control form-control-sm"
+                     placeholder="Calories burned (optional)">
+            </div>
+            <div class="modal-footer border-0 pt-0">
+              <button type="submit" class="btn btn-success btn-sm w-100">Log Workout</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Habit Modal -->
+    <div class="modal fade" id="quickHabitModal{{ m.id }}" tabindex="-1">
+      <div class="modal-dialog modal-sm">
+        <div class="modal-content glass-modal">
+          <div class="modal-header border-0 pb-0">
+            <h6 class="modal-title fw-bold">💧 Log Habits – {{ m.name }}</h6>
+            <button type="button" class="btn-close btn-close-sm" data-bs-dismiss="modal"></button>
+          </div>
+          <form method="POST" action="{{ url_for('main.member_log_habit', member_id=m.id) }}">
+            <div class="modal-body pt-2">
+              <div class="mb-2">
+                <input type="number" name="water_intake" class="form-control form-control-sm"
+                       step="0.1" placeholder="Water intake (L)" min="0" max="10">
+              </div>
+              <div class="mb-2">
+                <input type="number" name="sleep_hours" class="form-control form-control-sm"
+                       step="0.5" placeholder="Sleep hours" min="0" max="24">
+              </div>
+              <select name="mood" class="form-select form-select-sm">
+                <option value="great">😄 Great</option><option value="good">🙂 Good</option>
+                <option value="okay">😐 Okay</option><option value="tired">😴 Tired</option>
+              </select>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+              <button type="submit" class="btn btn-info btn-sm w-100 text-white">Log Habits</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Progress Modal -->
+    <div class="modal fade" id="quickProgressModal{{ m.id }}" tabindex="-1">
+      <div class="modal-dialog modal-sm">
+        <div class="modal-content glass-modal">
+          <div class="modal-header border-0 pb-0">
+            <h6 class="modal-title fw-bold">📈 Update Weight – {{ m.name }}</h6>
+            <button type="button" class="btn-close btn-close-sm" data-bs-dismiss="modal"></button>
+          </div>
+          <form method="POST" action="{{ url_for('main.member_log_progress', member_id=m.id) }}">
+            <div class="modal-body pt-2">
+              <input type="number" name="weight" class="form-control form-control-sm"
+                     step="0.1" placeholder="Weight (kg)"
+                     value="{{ m.weight or '' }}" required min="20" max="300">
+              {% if m.target_weight %}
+              <p class="text-muted mt-1 mb-0" style="font-size:.75rem">Target: {{ m.target_weight }} kg</p>
+              {% endif %}
+            </div>
+            <div class="modal-footer border-0 pt-0">
+              <button type="submit" class="btn btn-warning btn-sm w-100">Update Weight</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    {% endfor %}
+
+    {% if not family_data %}
+    <div class="col-12">
+      <div class="empty-state py-5">
+        <i class="bi bi-people display-3 text-muted"></i>
+        <h5 class="mt-3 text-muted">No profiles yet</h5>
+        <a href="{{ url_for('main.add_family_member') }}" class="btn btn-primary mt-2">
+          <i class="bi bi-person-plus-fill me-2"></i>Add First Member
+        </a>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <!-- SECTION 2 — FAMILY HEALTH DASHBOARD                       -->
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <div class="section-label mb-3">
+    <span class="section-pill"><i class="bi bi-heart-pulse-fill me-2"></i>Family Health Dashboard</span>
+  </div>
+
+  <div class="row g-3 mb-4">
+    <!-- Members -->
+    <div class="col-6 col-md-4 col-xl-2">
+      <div class="fhd-card fhd-blue">
+        <div class="fhd-icon"><i class="bi bi-people-fill"></i></div>
+        <div class="fhd-value">{{ family_stats.member_count }}</div>
+        <div class="fhd-label">Family Members</div>
+        <div class="fhd-trend"><i class="bi bi-arrow-up-short"></i>Active</div>
+      </div>
+    </div>
+    <!-- Avg BMI -->
+    <div class="col-6 col-md-4 col-xl-2">
+      <div class="fhd-card fhd-purple">
+        <div class="fhd-icon"><i class="bi bi-activity"></i></div>
+        <div class="fhd-value">{{ family_stats.avg_bmi }}</div>
+        <div class="fhd-label">Average BMI</div>
+        <div class="fhd-trend">
+          {% if family_stats.avg_bmi < 18.5 %}⬇ Underweight
+          {% elif family_stats.avg_bmi < 25 %}✓ Normal
+          {% elif family_stats.avg_bmi < 30 %}⬆ Overweight
+          {% else %}⚠ Obese{% endif %}
+        </div>
+      </div>
+    </div>
+    <!-- Fitness Score -->
+    <div class="col-6 col-md-4 col-xl-2">
+      <div class="fhd-card fhd-green">
+        <div class="fhd-icon"><i class="bi bi-star-fill"></i></div>
+        <div class="fhd-value">{{ family_stats.avg_score | int }}<span class="fhd-unit">/100</span></div>
+        <div class="fhd-label">Fitness Score</div>
+        <div class="fhd-trend">
+          {% if family_stats.avg_score >= 75 %}🔥 Excellent
+          {% elif family_stats.avg_score >= 50 %}👍 Good
+          {% else %}📈 Improving{% endif %}
+        </div>
+      </div>
+    </div>
+    <!-- Total Workouts -->
+    <div class="col-6 col-md-4 col-xl-2">
+      <div class="fhd-card fhd-orange">
+        <div class="fhd-icon"><i class="bi bi-lightning-fill"></i></div>
+        <div class="fhd-value">{{ family_stats.total_workouts }}</div>
+        <div class="fhd-label">Total Workouts</div>
+        <div class="fhd-trend"><i class="bi bi-calendar3"></i> Last 30 days</div>
+      </div>
+    </div>
+    <!-- Water -->
+    <div class="col-6 col-md-4 col-xl-2">
+      <div class="fhd-card fhd-cyan">
+        <div class="fhd-icon"><i class="bi bi-droplet-fill"></i></div>
+        <div class="fhd-value">{{ family_stats.avg_water }}<span class="fhd-unit">L</span></div>
+        <div class="fhd-label">Avg Daily Water</div>
+        <div class="fhd-trend">
+          {% if family_stats.avg_water >= 2.5 %}✓ On target
+          {% else %}⚠ Below 2.5L{% endif %}
+        </div>
+      </div>
+    </div>
+    <!-- Consistency -->
+    <div class="col-6 col-md-4 col-xl-2">
+      <div class="fhd-card fhd-pink">
+        <div class="fhd-icon"><i class="bi bi-check2-circle"></i></div>
+        <div class="fhd-value">{{ family_stats.consistency | int }}<span class="fhd-unit">%</span></div>
+        <div class="fhd-label">Consistency Score</div>
+        <div class="fhd-trend">
+          {% if family_stats.consistency >= 75 %}🏆 Strong
+          {% elif family_stats.consistency >= 50 %}📈 Building
+          {% else %}💪 Keep going{% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <!-- SECTION 3 — FAMILY PROGRESS COMPARISON                    -->
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <div class="section-label mb-3">
+    <span class="section-pill"><i class="bi bi-bar-chart-fill me-2"></i>Family Progress Comparison</span>
+  </div>
+
+  <div class="row g-4 mb-4">
+
+    <!-- BMI Comparison -->
+    <div class="col-lg-6">
+      <div class="glass-card h-100">
+        <div class="glass-card-header">
+          <h6 class="mb-0 fw-bold"><i class="bi bi-activity me-2 text-primary"></i>BMI Comparison</h6>
+        </div>
+        <div class="glass-card-body">
+          <canvas id="bmiChart" height="180"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Fitness Score Comparison -->
+    <div class="col-lg-6">
+      <div class="glass-card h-100">
+        <div class="glass-card-header">
+          <h6 class="mb-0 fw-bold"><i class="bi bi-star-fill me-2 text-warning"></i>Fitness Score Comparison</h6>
+        </div>
+        <div class="glass-card-body">
+          <canvas id="fitnessScoreChart" height="180"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Workout Completion -->
+    <div class="col-lg-6">
+      <div class="glass-card h-100">
+        <div class="glass-card-header">
+          <h6 class="mb-0 fw-bold"><i class="bi bi-lightning-fill me-2 text-success"></i>Workout Completion %</h6>
+        </div>
+        <div class="glass-card-body">
+          <canvas id="workoutCompletionChart" height="180"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Weight Progress -->
+    <div class="col-lg-6">
+      <div class="glass-card h-100">
+        <div class="glass-card-header">
+          <h6 class="mb-0 fw-bold"><i class="bi bi-graph-up-arrow me-2 text-info"></i>Weight Progress</h6>
+        </div>
+        <div class="glass-card-body">
+          <canvas id="weightProgressChart" height="180"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Goal Progress Bars -->
+    <div class="col-12">
+      <div class="glass-card">
+        <div class="glass-card-header">
+          <h6 class="mb-0 fw-bold"><i class="bi bi-bullseye me-2 text-danger"></i>Goal Progress Comparison</h6>
+        </div>
+        <div class="glass-card-body">
+          <div class="row g-3">
+            {% for m in family_data %}
+            <div class="col-md-6">
+              <div class="goal-progress-item">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                  <div class="d-flex align-items-center gap-2">
+                    <div class="mini-avatar">{{ m.name[0].upper() }}</div>
+                    <span class="fw-semibold small">{{ m.name }}</span>
+                    <span class="badge bg-secondary-subtle text-secondary" style="font-size:.65rem">{{ m.profile_type }}</span>
+                  </div>
+                  <span class="fw-bold small">{{ m.goal_progress_pct | int }}%</span>
+                </div>
+                <div class="progress goal-bar">
+                  <div class="progress-bar goal-bar-fill
+                    {% if m.goal_progress_pct >= 75 %}bg-success
+                    {% elif m.goal_progress_pct >= 40 %}bg-primary
+                    {% elif m.goal_progress_pct >= 20 %}bg-warning
+                    {% else %}bg-danger{% endif %}"
+                    style="width:{{ m.goal_progress_pct }}%"
+                    title="{{ m.goal_progress_pct }}% of {{ (m.fitness_goal or 'general fitness') | replace('_',' ') }} goal">
+                  </div>
+                </div>
+                <div class="d-flex justify-content-between mt-1">
+                  <span class="text-muted" style="font-size:.7rem">{{ (m.fitness_goal or 'General Fitness') | replace('_',' ') | title }}</span>
+                  <span class="text-muted" style="font-size:.7rem">🔥 {{ m.streak }}d streak</span>
+                </div>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <!-- SECTION 4 — AI GENERATED FAMILY INSIGHTS                  -->
+  <!-- ══════════════════════════════════════════════════════════ -->
+  <div class="section-label mb-3">
+    <span class="section-pill"><i class="bi bi-stars me-2"></i>AI Generated Family Insights</span>
+  </div>
+
+  <div class="glass-card mb-4">
+    <div class="glass-card-header d-flex align-items-center justify-content-between flex-wrap gap-2">
+      <div class="d-flex align-items-center gap-2">
+        <h6 class="mb-0 fw-bold"><i class="bi bi-robot me-2 text-primary"></i>IBM Granite Family Analysis</h6>
+        <span class="online-dot"></span>
+      </div>
+      <div class="d-flex align-items-center gap-2 flex-wrap">
+        <div id="agentBadges" class="d-flex gap-1 flex-wrap d-none">
+          <span class="badge bg-primary-subtle text-primary" style="font-size:.68rem"><i class="bi bi-cpu me-1"></i>FamilyAnalysis</span>
+          <span class="badge bg-success-subtle text-success" style="font-size:.68rem"><i class="bi bi-cpu me-1"></i>UserProfile</span>
+          <span class="badge bg-warning-subtle text-warning" style="font-size:.68rem"><i class="bi bi-cpu me-1"></i>HabitTracking</span>
+          <span class="badge bg-info-subtle text-info" style="font-size:.68rem"><i class="bi bi-cpu me-1"></i>ProgressEval</span>
+        </div>
+        <button class="btn btn-primary btn-sm fw-semibold" id="generateInsightsBtn">
+          <i class="bi bi-stars me-1"></i>Generate Family Insights
+        </button>
+      </div>
+    </div>
+    <div class="glass-card-body" id="insightsBody">
+      <!-- Initial placeholder -->
+      <div class="insights-placeholder" id="insightsPlaceholder">
+        <div class="text-center py-4">
+          <div class="insights-robot">🤖</div>
+          <p class="text-muted mt-2 mb-3">Click <strong>"Generate Family Insights"</strong> to get personalised AI analysis of your family's fitness journey powered by IBM Granite.</p>
+          <div class="row g-2 justify-content-center">
+            {% set examples = [
+              ("bi-graph-up","Who has the highest consistency this month"),
+              ("bi-droplet","Family hydration improvement trends"),
+              ("bi-star","Top performing family member this week"),
+              ("bi-bullseye","Personalised family recommendations"),
+            ] %}
+            {% for icon, text in examples %}
+            <div class="col-auto">
+              <div class="insight-example-chip">
+                <i class="bi {{ icon }} me-1"></i>{{ text }}
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+
+      <!-- AI insights result (hidden until generated) -->
+      <div id="insightsResult" class="d-none">
+        <div id="insightsText" class="insights-content"></div>
+        <div class="mt-3 pt-3 border-top d-flex align-items-center justify-content-between flex-wrap gap-2">
+          <span class="text-muted small"><i class="bi bi-clock me-1"></i>Generated just now · IBM Granite on watsonx.ai</span>
+          <button class="btn btn-sm btn-outline-primary" id="regenerateBtn">
+            <i class="bi bi-arrow-clockwise me-1"></i>Regenerate
+          </button>
+        </div>
+      </div>
+
+      <!-- Loading state -->
+      <div id="insightsLoading" class="d-none text-center py-5">
+        <div class="family-loading-dots">
+          <span></span><span></span><span></span>
+        </div>
+        <p class="text-muted mt-3 small">
+          <strong>4 AI agents collaborating</strong> — analysing {{ family_stats.member_count }} family members…
+        </p>
+        <div class="d-flex gap-2 justify-content-center flex-wrap mt-2">
+          <span class="agent-working" id="aw1">UserProfile Agent</span>
+          <span class="agent-working" id="aw2">HabitTracking Agent</span>
+          <span class="agent-working" id="aw3">Progress Agent</span>
+          <span class="agent-working" id="aw4">FamilyAnalysis Agent</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /container -->
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  const familyData = {{ family_data | tojson }};
+</script>
+<script src="{{ url_for('static', filename='js/family_charts.js') }}"></script>
+{% endblock %}
